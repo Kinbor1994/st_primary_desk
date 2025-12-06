@@ -2,19 +2,18 @@
 name = "st-primary-desk"
 version = "0.1.0"
 description = ""
-authors = [
-    {name = "KINNOUME S. Borel",email = "kinnoumeb@gmail.com"}
-]
+authors = [{ name = "KINNOUME S. Borel", email = "kinnoumeb@gmail.com" }]
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "streamlit (==1.51.0)",
     "sqlmodel (==0.0.27)",
-    "alembic (==1.16.5)"
+    "alembic (==1.16.5)",
 ]
 
 [tool.poetry]
-packages = [{include = "st_primary_desk", from = "src"}]
+# Inclut le dossier `src` comme paquet racine du projet (depuis la racine du repo)
+packages = [{ include = "src", from = "." }]
 
 
 [build-system]
