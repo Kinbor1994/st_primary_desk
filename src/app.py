@@ -15,6 +15,11 @@ from src.models import SchoolInfo, AcademicYear
 
 # Import des vues (pages)
 from src.views.settings import settings_view
+from src.views.teachers import teachers_view
+from src.views.classes import classes_view
+from src.views.students import students_view
+from src.views.grades import grades_view
+from src.views.dashboard import dashboard_view
 
 # Configuration de la page
 st.set_page_config(page_title="Primary School Desk", layout="wide", page_icon="🏫")
@@ -51,7 +56,14 @@ with Session(engine) as session:
     # Menu
     menu = st.sidebar.radio(
         "Navigation",
-        ["Tableau de bord", "Élèves", "Enseignants", "Evaluations", "Configuration"],
+        [
+            "Tableau de bord",
+            "Élèves",
+            "Enseignants",
+            "Classes",
+            "Evaluations",
+            "Configuration",
+        ],
     )
 
 # --- CORPS DE LA PAGE ---
@@ -60,23 +72,20 @@ with Session(engine) as session:
         settings_view(session)
 
     elif menu == "Tableau de bord":
-        st.title("Tableau de bord")
-        st.write("Bienvenue dans le gestionnaire scolaire.")
-        if not active_year:
-            st.warning(
-                "👉 Veuillez aller dans 'Configuration' pour activer une année scolaire."
-            )
-        else:
-            st.write("Sélectionnez un menu à gauche pour commencer.")
+        dashboard_view(session)
 
     elif menu == "Élèves":
         st.title("Gestion des Élèves")
-        st.info("Module en construction...")
+        students_view(session)
 
     elif menu == "Enseignants":
         st.title("Gestion des Enseignants")
-        st.info("Module en construction...")
+        teachers_view(session)
+
+    elif menu == "Classes":
+        st.title("Gestion des Classes")
+        classes_view(session)
 
     elif menu == "Evaluations":
         st.title("Gestion des Notes")
-        st.info("Module en construction...")
+        grades_view(session)
