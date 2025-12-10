@@ -227,7 +227,7 @@ def grades_view(session: Session):
     classes = session.exec(
         select(ClassRoom).where(ClassRoom.academic_year_id == active_year.id)
     ).all()
-    class_map = {f"{c.nom_interne} ({c.niveau.value})": c.id for c in classes}
+    class_map = {f"{c.niveau.value}": c.id for c in classes}
     class_names = list(class_map.keys())
 
     if not classes:
@@ -250,8 +250,14 @@ def grades_view(session: Session):
     selected_eval_enum = EvaluationEtape(evaluation_step)
     st.divider()
 
-    tab_dl, tab_upload, tab_results = st.tabs(
-        ["⬇️ Modèle de Notes", "⬆️ Importer les Notes", "📊 Résultats"]
+    tab_dl, tab_upload, tab_results, tab_stats, tab_eval_results = st.tabs(
+        [
+            "⬇️ Modèle de Notes",
+            "⬆️ Importer les Notes",
+            "📊 Résultats",
+            "📈 Statistiques",
+            "Résultats de l'évaluation",
+        ]
     )
 
     # --- ONGLET 1 : TÉLÉCHARGEMENT DU MODÈLE ---
@@ -330,7 +336,6 @@ def grades_view(session: Session):
             for term_avg, enr, stu, grade in results:
                 # Colonnes de base (rang, id élève)
                 row = {
-                    "Rang": term_avg.rang,
                     "Matricule": stu.matricule,
                     "Nom & Prénom": f"{stu.nom} {stu.prenom}",
                 }
@@ -355,6 +360,7 @@ def grades_view(session: Session):
                     if term_avg.total_points is not None
                     else None
                 )
+                row["Rang"] = term_avg.rang
                 row["Décision"] = term_avg.decision
 
                 display_data.append(row)
@@ -395,3 +401,334 @@ def grades_view(session: Session):
 
         else:
             st.info("Aucun résultat enregistré pour cette évaluation.")
+
+    # --- ONGLET 4 : STATISTIQUES ---
+    with tab_stats:
+        st.subheader(f"Statistiques de {selected_class_name} ({evaluation_step})")
+
+        # Récupérer tous les enrollments et grades pour cette classe et évaluation
+        enrollments_for_stats = session.exec(
+            select(Enrollment, Student, Grade)
+            .join(Student, Enrollment.student_id == Student.id)
+            .join(ClassRoom, Enrollment.classroom_id == ClassRoom.id)
+            .join(Grade, Grade.enrollment_id == Enrollment.id, isouter=True)
+            .where(
+                ClassRoom.id == selected_class_id,
+                Grade.evaluation == selected_eval_enum,
+            )
+        ).all()
+
+        if not enrollments_for_stats:
+            st.info(
+                "Aucune donnée d'évaluation pour cette classe. Importez des notes d'abord."
+            )
+        else:
+            # Calculer les stats pour chaque matière
+            stats_data = []
+
+            for code, human_name in MATIERES:
+                inscrits_g = 0
+                inscrits_f = 0
+                presents_g = 0  # Élève a une note (non None)
+                presents_f = 0
+                absents_g = 0  # Élève inscrit mais pas de note
+                absents_f = 0
+                notes_g = []
+                notes_f = []
+
+                for enr, stu, grade in enrollments_for_stats:
+                    if stu.sexe == "M":
+                        inscrits_g += 1
+                        if grade is not None:
+                            note_val = getattr(grade, code, None)
+                            if note_val is not None:
+                                presents_g += 1
+                                notes_g.append(note_val)
+                            else:
+                                absents_g += 1
+                        else:
+                            absents_g += 1
+                    else:  # F
+                        inscrits_f += 1
+                        if grade is not None:
+                            note_val = getattr(grade, code, None)
+                            if note_val is not None:
+                                presents_f += 1
+                                notes_f.append(note_val)
+                            else:
+                                absents_f += 1
+                        else:
+                            absents_f += 1
+
+                inscrits_t = inscrits_g + inscrits_f
+                presents_t = presents_g + presents_f
+                absents_t = absents_g + absents_f
+
+                # Calculer moyenne, seuil atteint, taux réussite
+                all_notes = notes_g + notes_f
+                avg_note = sum(all_notes) / len(all_notes) if all_notes else 0
+                seuil_atteint_g = sum(1 for n in notes_g if n >= 10)
+                seuil_atteint_f = sum(1 for n in notes_f if n >= 10)
+                seuil_atteint_t = seuil_atteint_g + seuil_atteint_f
+
+                taux_reussite_g = (
+                    (seuil_atteint_g / presents_g * 100) if presents_g > 0 else 0
+                )
+                taux_reussite_f = (
+                    (seuil_atteint_f / presents_f * 100) if presents_f > 0 else 0
+                )
+                taux_reussite_t = (
+                    (seuil_atteint_t / presents_t * 100) if presents_t > 0 else 0
+                )
+
+                stats_data.append(
+                    {
+                        "Matière": human_name,
+                        "Inscrits G": inscrits_g,
+                        "Inscrits F": inscrits_f,
+                        "Inscrits T": inscrits_t,
+                        "Absents G": absents_g,
+                        "Absents F": absents_f,
+                        "Absents T": absents_t,
+                        "Présents G": presents_g,
+                        "Présents F": presents_f,
+                        "Présents T": presents_t,
+                        "Note G": (
+                            round(sum(notes_g) / len(notes_g), 2) if notes_g else 0
+                        ),
+                        "Note F": (
+                            round(sum(notes_f) / len(notes_f), 2) if notes_f else 0
+                        ),
+                        "Note T": round(avg_note, 2),
+                        "Seuil G": seuil_atteint_g,
+                        "Seuil F": seuil_atteint_f,
+                        "Seuil T": seuil_atteint_t,
+                        "Taux G %": f"{taux_reussite_g:.1f}%",
+                        "Taux F %": f"{taux_reussite_f:.1f}%",
+                        "Taux T %": f"{taux_reussite_t:.1f}%",
+                    }
+                )
+
+            # Restructurer le DataFrame avec colonnes groupées par section (G/F/T)
+            df_stats = pd.DataFrame(stats_data)
+
+            # Créer une structure multi-niveaux pour l'affichage groupé
+            display_cols = ["Matière"]
+            for col in [
+                "Inscrits",
+                "Présents",
+                "Absents",
+                "Ont atteint le seuil de réussite",
+                "n'ont pas atteint le seuil de réussite",
+                "% Pourcentage réussite",
+                "% Pourcentage échec",
+            ]:
+                for sub in ["G", "F", "T"]:
+                    if col == "Inscrits":
+                        display_cols.append(f"Inscrits {sub}")
+                    elif col == "Présents":
+                        display_cols.append(f"Présents {sub}")
+                    elif col == "Absents":
+                        display_cols.append(f"Absents {sub}")
+                    elif col == "Ont atteint le seuil de réussite":
+                        display_cols.append(f"Seuil {sub}")
+                    elif col == "n'ont pas atteint le seuil de réussite":
+                        # Calculer nombre n'ayant pas atteint le seuil
+                        pass
+                    elif col == "% Pourcentage réussite":
+                        display_cols.append(f"Taux {sub} %")
+                    elif col == "% Pourcentage échec":
+                        # Calculer pourcentage d'échec
+                        pass
+
+            # Réorganiser les colonnes dans l'ordre demandé
+            display_order = ["Matière"]
+            for sub in ["G", "F", "T"]:
+                display_order.append(f"Inscrits {sub}")
+            for sub in ["G", "F", "T"]:
+                display_order.append(f"Présents {sub}")
+            for sub in ["G", "F", "T"]:
+                display_order.append(f"Absents {sub}")
+            for sub in ["G", "F", "T"]:
+                display_order.append(f"Seuil {sub}")
+            for sub in ["G", "F", "T"]:
+                display_order.append(f"Taux {sub} %")
+
+            df_display = df_stats[display_order]
+            st.dataframe(df_display, use_container_width=True, hide_index=True)
+
+            # Bouton d'export pour les stats
+            col_csv_stats, col_xlsx_stats = st.columns(2)
+            with col_csv_stats:
+                csv_stats = df_display.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    label="Exporter Stats CSV",
+                    data=csv_stats,
+                    file_name=f"stats_{selected_class_name}_{evaluation_step.replace(' ', '_')}.csv",
+                    mime="text/csv",
+                )
+            with col_xlsx_stats:
+                output_stats = BytesIO()
+                with pd.ExcelWriter(output_stats, engine="xlsxwriter") as writer:
+                    df_display.to_excel(writer, index=False, sheet_name="Statistiques")
+                xlsx_stats = output_stats.getvalue()
+                st.download_button(
+                    label="Exporter Stats XLSX",
+                    data=xlsx_stats,
+                    file_name=f"stats_{selected_class_name}_{evaluation_step.replace(' ', '_')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                )
+
+    # --- ONGLET 5 : RÉSULTATS DE L'ÉVALUATION (SYNTHÈSE) ---
+    with tab_eval_results:
+        st.subheader(
+            f"Synthèse de l'évaluation de {selected_class_name} ({evaluation_step})"
+        )
+
+        # Récupérer tous les enrollments et TermAverage pour cette classe et évaluation
+        eval_results = session.exec(
+            select(Enrollment, Student, TermAverage)
+            .join(Student, Enrollment.student_id == Student.id)
+            .join(ClassRoom, Enrollment.classroom_id == ClassRoom.id)
+            .join(TermAverage, TermAverage.enrollment_id == Enrollment.id)
+            .where(
+                ClassRoom.id == selected_class_id,
+                TermAverage.evaluation == selected_eval_enum,
+            )
+        ).all()
+
+        if not eval_results:
+            st.info(
+                "Aucun résultat d'évaluation pour cette classe. Importez des notes d'abord."
+            )
+        else:
+            # Calculer les stats synthétiques globales
+            inscrits_g = 0
+            inscrits_f = 0
+            presents_g = 0
+            presents_f = 0
+            absents_g = 0
+            absents_f = 0
+            seuil_g = 0
+            seuil_f = 0
+            non_seuil_g = 0
+            non_seuil_f = 0
+
+            for enr, stu, term_avg in eval_results:
+                if stu.sexe == "M":
+                    inscrits_g += 1
+                    # Vérifier si l'élève a au moins une note (présent)
+                    grade_data = session.exec(
+                        select(Grade).where(
+                            Grade.enrollment_id == enr.id,
+                            Grade.evaluation == selected_eval_enum,
+                        )
+                    ).first()
+                    if grade_data is not None:
+                        presents_g += 1
+                    else:
+                        absents_g += 1
+
+                    # Compter seuil atteint/non atteint
+                    if term_avg.decision == "A ATTEINT LE SEUIL":
+                        seuil_g += 1
+                    else:
+                        non_seuil_g += 1
+                else:  # F
+                    inscrits_f += 1
+                    grade_data = session.exec(
+                        select(Grade).where(
+                            Grade.enrollment_id == enr.id,
+                            Grade.evaluation == selected_eval_enum,
+                        )
+                    ).first()
+                    if grade_data is not None:
+                        presents_f += 1
+                    else:
+                        absents_f += 1
+
+                    if term_avg.decision == "A ATTEINT LE SEUIL":
+                        seuil_f += 1
+                    else:
+                        non_seuil_f += 1
+
+            # Totaux
+            inscrits_t = inscrits_g + inscrits_f
+            presents_t = presents_g + presents_f
+            absents_t = absents_g + absents_f
+            seuil_t = seuil_g + seuil_f
+            non_seuil_t = non_seuil_g + non_seuil_f
+
+            # Pourcentages (éviter division par 0)
+            pct_seuil_g = (seuil_g / inscrits_g * 100) if inscrits_g > 0 else 0
+            pct_seuil_f = (seuil_f / inscrits_f * 100) if inscrits_f > 0 else 0
+            pct_seuil_t = (seuil_t / inscrits_t * 100) if inscrits_t > 0 else 0
+
+            pct_non_seuil_g = (non_seuil_g / inscrits_g * 100) if inscrits_g > 0 else 0
+            pct_non_seuil_f = (non_seuil_f / inscrits_f * 100) if inscrits_f > 0 else 0
+            pct_non_seuil_t = (non_seuil_t / inscrits_t * 100) if inscrits_t > 0 else 0
+
+            # Construire le DataFrame synthèse
+            synthesis_data = {
+                "Métrique": [
+                    "INSCRITS",
+                    "PRÉSENTS",
+                    "ABSENTS",
+                    "Ont atteint le seuil de réussite",
+                    "% Pourcentage",
+                    "n'ont pas atteint le seuil de réussite",
+                    "% Pourcentage",
+                ],
+                "G": [
+                    inscrits_g,
+                    presents_g,
+                    absents_g,
+                    seuil_g,
+                    f"{pct_seuil_g:.1f}%",
+                    non_seuil_g,
+                    f"{pct_non_seuil_g:.1f}%",
+                ],
+                "F": [
+                    inscrits_f,
+                    presents_f,
+                    absents_f,
+                    seuil_f,
+                    f"{pct_seuil_f:.1f}%",
+                    non_seuil_f,
+                    f"{pct_non_seuil_f:.1f}%",
+                ],
+                "T": [
+                    inscrits_t,
+                    presents_t,
+                    absents_t,
+                    seuil_t,
+                    f"{pct_seuil_t:.1f}%",
+                    non_seuil_t,
+                    f"{pct_non_seuil_t:.1f}%",
+                ],
+            }
+
+            df_synthesis = pd.DataFrame(synthesis_data)
+            st.dataframe(df_synthesis, use_container_width=True, hide_index=True)
+
+            # Boutons d'export synthèse
+            col_csv_syn, col_xlsx_syn = st.columns(2)
+            with col_csv_syn:
+                csv_syn = df_synthesis.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    label="Exporter Synthèse CSV",
+                    data=csv_syn,
+                    file_name=f"synthesis_{selected_class_name}_{evaluation_step.replace(' ', '_')}.csv",
+                    mime="text/csv",
+                )
+            with col_xlsx_syn:
+                output_syn = BytesIO()
+                with pd.ExcelWriter(output_syn, engine="xlsxwriter") as writer:
+                    df_synthesis.to_excel(writer, index=False, sheet_name="Synthèse")
+                xlsx_syn = output_syn.getvalue()
+                st.download_button(
+                    label="Exporter Synthèse XLSX",
+                    data=xlsx_syn,
+                    file_name=f"synthesis_{selected_class_name}_{evaluation_step.replace(' ', '_')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                )

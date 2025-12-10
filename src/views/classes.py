@@ -1,11 +1,11 @@
 import streamlit as st
 from sqlmodel import select, Session
+import pandas as pd
 from src.models import ClassRoom, ClasseNiveau, Teacher, AcademicYear
 
 def classes_view(session: Session):
     st.header("📚 Gestion des Classes et Affectations")
     
-    # 1. Vérification de l'année scolaire active
     active_year = session.exec(select(AcademicYear).where(AcademicYear.active == True)).first()
     
     if not active_year:
@@ -14,9 +14,7 @@ def classes_view(session: Session):
 
     st.info(f"Année scolaire active : **{active_year.nom}**")
     
-    # --- PRÉPARATION DES DONNÉES ---
-    
-    # Tous les enseignants
+    # Récupérer tous les enseignants
     all_teachers = session.exec(select(Teacher)).all()
     # Dictionnaire de mapping {ID: Nom Prénom (Matricule)} pour le selectbox
     teacher_options = {t.id: f"{t.nom} {t.prenom} ({t.matricule})" for t in all_teachers}
@@ -108,16 +106,12 @@ def classes_view(session: Session):
                     teacher_name = f"{teacher.nom} {teacher.prenom}"
                     
             display_data.append({
-                "Niveau": class_item.niveau.value,
                 "Nom Interne": class_item.nom_interne,
                 "Enseignant Responsable": teacher_name,
-                "Action": st.button("Modifier l'affectation", key=f"edit_{class_item.id}") # Bouton pour futures évolutions
             })
 
-        # Utilisation de pandas pour Streamlit (plus facile à afficher)
-        import pandas as pd
         df = pd.DataFrame(display_data)
-        st.dataframe(df.drop(columns=["Action"]), use_container_width=True, hide_index=True)
+        st.dataframe(df, use_container_width=True, hide_index=True)
     
     else:
         st.info("Aucune classe n'a été ouverte pour cette année scolaire.")

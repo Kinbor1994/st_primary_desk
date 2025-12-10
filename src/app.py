@@ -3,9 +3,7 @@ import sys
 from pathlib import Path
 from sqlmodel import Session, select
 
-# Assure que le dossier racine du projet est dans sys.path afin que
-# l'import absolu `src.core.database` fonctionne lors de l'exécution
-# via `streamlit run src/app.py` (Streamlit lance le script comme __main__).
+
 project_root = Path(__file__).resolve().parents[1]
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
