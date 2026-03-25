@@ -269,18 +269,28 @@ def students_view(session: Session):
     with tab_update:
         st.subheader("Modifier ou Supprimer un élève")
 
-        # Rechercher l'élève
-        search_matricule = st.text_input(
-            "Rechercher par matricule",
+        # Rechercher l'élève par nom, prénom ou matricule
+        search_query = st.text_input(
+            "🔍 Rechercher par nom, prénom ou matricule",
             key="update_search",
-            placeholder="Entrez le matricule de l'élève",
+            placeholder="Ex: DUPONT, Jean, ou MAT001",
         )
 
-        if search_matricule:
-            student = service.get_student_by_matricule(search_matricule)
+        student = None
+        if search_query:
+            results = service.search_students(search_query)
 
-            if student:
-                st.success(f"✅ Élève trouvé: **{student.nom} {student.prenom}**")
+            if results:
+                student_options = {
+                    f"{s.matricule} — {s.nom} {s.prenom}": s for s in results
+                }
+                selected_key = st.selectbox(
+                    f"📋 {len(results)} élève(s) trouvé(s) — sélectionnez :",
+                    options=list(student_options.keys()),
+                    key="update_student_select",
+                )
+                student = student_options[selected_key]
+                st.success(f"✅ Élève sélectionné : **{student.nom} {student.prenom}**")
                 st.divider()
 
                 # Choix de l'action
