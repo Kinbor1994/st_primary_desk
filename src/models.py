@@ -54,6 +54,9 @@ class EvaluationEtape(str, Enum):
 class SchoolInfo(SQLModel, table=True):
     """Informations générales de l'établissement (Ligne unique en théorie)"""
 
+    __tablename__ = "schoolinfo"
+    __table_args__ = {"extend_existing": True}
+
     id: Optional[int] = Field(default=None, primary_key=True)
     nom: str
     niveau: str = Field(default="EP")
@@ -69,6 +72,9 @@ class SchoolInfo(SQLModel, table=True):
 class AcademicYear(SQLModel, table=True):
     """Gestion des années scolaires (ex: 2024-2025)"""
 
+    __tablename__ = "academicyear"
+    __table_args__ = {"extend_existing": True}
+
     id: Optional[int] = Field(default=None, primary_key=True)
     nom: str = Field(unique=True)  # ex: "2024-2025"
     active: bool = Field(default=False)  # Une seule active à la fois
@@ -76,6 +82,9 @@ class AcademicYear(SQLModel, table=True):
 
 class Teacher(SQLModel, table=True):
     """Dossier complet de l'enseignant"""
+
+    __tablename__ = "teacher"
+    __table_args__ = {"extend_existing": True}
 
     id: Optional[int] = Field(default=None, primary_key=True)
     matricule: str = Field(unique=True, index=True)
@@ -107,6 +116,9 @@ class Teacher(SQLModel, table=True):
 class Student(SQLModel, table=True):
     """Dossier de l'élève"""
 
+    __tablename__ = "student"
+    __table_args__ = {"extend_existing": True}
+
     id: Optional[int] = Field(default=None, primary_key=True)
     matricule: str = Field(unique=True, index=True)
     nom: str
@@ -124,6 +136,9 @@ class Student(SQLModel, table=True):
 class ClassRoom(SQLModel, table=True):
     """Une classe ouverte pour une année spécifique (ex: Le CI de 2024-2025)"""
 
+    __tablename__ = "classroom"
+    __table_args__ = {"extend_existing": True}
+
     id: Optional[int] = Field(default=None, primary_key=True)
     academic_year_id: int = Field(foreign_key="academicyear.id")
     teacher_id: Optional[int] = Field(foreign_key="teacher.id", default=None)
@@ -136,6 +151,9 @@ class ClassRoom(SQLModel, table=True):
 class Enrollment(SQLModel, table=True):
     """L'inscription d'un élève dans une classe pour une année (Enrolement)"""
 
+    __tablename__ = "enrollment"
+    __table_args__ = {"extend_existing": True}
+
     id: Optional[int] = Field(default=None, primary_key=True)
     student_id: int = Field(foreign_key="student.id")
     classroom_id: int = Field(foreign_key="classroom.id")
@@ -144,6 +162,9 @@ class Enrollment(SQLModel, table=True):
 
 class Grade(SQLModel, table=True):
     """Notes pour une évaluation spécifique"""
+
+    __tablename__ = "grade"
+    __table_args__ = {"extend_existing": True}
 
     id: Optional[int] = Field(default=None, primary_key=True)
     enrollment_id: int = Field(foreign_key="enrollment.id")
@@ -165,6 +186,9 @@ class Grade(SQLModel, table=True):
 class TermAverage(SQLModel, table=True):
     """Résultats calculés par période"""
 
+    __tablename__ = "termaverage"
+    __table_args__ = {"extend_existing": True}
+
     id: Optional[int] = Field(default=None, primary_key=True)
     enrollment_id: int = Field(foreign_key="enrollment.id")
     evaluation: str
@@ -178,6 +202,9 @@ class TermAverage(SQLModel, table=True):
 
 class FinalResult(SQLModel, table=True):
     """Résultat de fin d'année"""
+
+    __tablename__ = "finalresult"
+    __table_args__ = {"extend_existing": True}
 
     id: Optional[int] = Field(default=None, primary_key=True)
     enrollment_id: int = Field(foreign_key="enrollment.id")

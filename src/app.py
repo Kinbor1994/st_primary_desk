@@ -4,9 +4,11 @@ from pathlib import Path
 from sqlmodel import Session, select
 
 
-project_root = Path(__file__).resolve().parents[1]
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
+# Ensure the project root is in sys.path so 'src' package is importable.
+# We check both the exact string AND avoid adding if already resolvable.
+project_root = str(Path(__file__).resolve().parents[1])
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
 from src.core.database import create_db_and_tables, engine
 from src.models import SchoolInfo, AcademicYear
