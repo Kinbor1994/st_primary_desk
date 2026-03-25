@@ -56,8 +56,8 @@ class SchoolInfo(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     nom: str
-    niveau: NiveauEcole = Field(default=NiveauEcole.EP)
-    statut: StatutEcole
+    niveau: str = Field(default="EP")
+    statut: str
     est_ecole_handicape: bool = Field(default=False)
     departement: str
     commune: str
@@ -82,7 +82,7 @@ class Teacher(SQLModel, table=True):
     id_anpe: Optional[str] = None  # Pour les AME
     nom: str
     prenom: str
-    sexe: Sexe
+    sexe: str
     date_naissance: date
     lieu_naissance: str
     adresse: Optional[str] = None
@@ -92,7 +92,7 @@ class Teacher(SQLModel, table=True):
     date_prise_service: Optional[date] = None
 
     # Carrière
-    statut: StatutEnseignant
+    statut: str
     corps_actuel: str  # Instituteur, etc.
     diplome_académique: str  # BAC, Licence...
     annee_obtention_diplome: Optional[int] = None
@@ -111,7 +111,7 @@ class Student(SQLModel, table=True):
     matricule: str = Field(unique=True, index=True)
     nom: str
     prenom: str
-    sexe: Sexe
+    sexe: str
     date_naissance: date
     lieu_naissance: str
     nom_parent: str
@@ -127,7 +127,7 @@ class ClassRoom(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     academic_year_id: int = Field(foreign_key="academicyear.id")
     teacher_id: Optional[int] = Field(foreign_key="teacher.id", default=None)
-    niveau: ClasseNiveau  # CI, CP, etc.
+    niveau: str
 
     # Nom customisable si besoin (ex: CI A, CI B) sinon juste "CI"
     nom_interne: str
@@ -147,7 +147,7 @@ class Grade(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     enrollment_id: int = Field(foreign_key="enrollment.id")
-    evaluation: EvaluationEtape
+    evaluation: str
 
     # Matières (Structure plate comme demandée)
     note_ce: Optional[float] = None  # Compréhension Ecrit
@@ -167,7 +167,7 @@ class TermAverage(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     enrollment_id: int = Field(foreign_key="enrollment.id")
-    evaluation: EvaluationEtape
+    evaluation: str
 
     total_moyenne: int  # Nb matières >= 10
     total_note: int  # Nb total matières (souvent 9)
