@@ -42,13 +42,13 @@ def dashboard_view(session: Session):
 
     # Selectbox pour choisir une classe
     st.subheader("Sélection de la Classe")
-    class_names = [f"{c.nom_interne} ({c.niveau.value})" for c in classes]
+    class_names = [f"{c.nom_interne} ({c.niveau})" for c in classes]
     selected_class_name = st.selectbox("Choisir une classe", options=class_names)
     selected_class = next(
         (
             c
             for c in classes
-            if f"{c.nom_interne} ({c.niveau.value})" == selected_class_name
+            if f"{c.nom_interne} ({c.niveau})" == selected_class_name
         ),
         None,
     )
