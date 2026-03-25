@@ -17,7 +17,7 @@ from src.models import Student, Sexe
 
 with Session(engine) as session:
     service = StudentService(session)
-    
+
     # ... utiliser le service
 
 
@@ -27,7 +27,7 @@ with Session(engine) as session:
 
 with Session(engine) as session:
     service = StudentService(session)
-    
+
     # Créer un élève simple
     student1 = service.create_student(
         matricule="2024001",
@@ -40,7 +40,7 @@ with Session(engine) as session:
         contact_parent="+229 90 12 34 56",
     )
     print(f"✅ Créé: {student1.prenom} {student1.nom} (ID: {student1.id})")
-    
+
     # Créer un élève avec tous les champs
     student2 = service.create_student(
         matricule="2024002",
@@ -56,7 +56,7 @@ with Session(engine) as session:
         est_demuni=True,  # Marqué comme démuni
     )
     print(f"✅ Créé: {student2.prenom} {student2.nom}")
-    
+
     # ⚠️ Gérer les erreurs (matricule dupliqué)
     try:
         duplicate = service.create_student(
@@ -79,12 +79,12 @@ with Session(engine) as session:
 
 with Session(engine) as session:
     service = StudentService(session)
-    
+
     # Récupérer par ID
     student = service.get_student_by_id(1)
     if student:
         print(f"📖 Élève ID 1: {student.nom} {student.prenom}")
-    
+
     # Récupérer par matricule (unique)
     student = service.get_student_by_matricule("2024001")
     if student:
@@ -94,7 +94,7 @@ with Session(engine) as session:
         print(f"   Contact: {student.contact_parent}")
         print(f"   Orphelin: {'✅' if student.est_orphelin else '❌'}")
         print(f"   Démuni: {'✅' if student.est_demuni else '❌'}")
-    
+
     # Lister TOUS les élèves (triés par nom/prénom)
     all_students = service.get_all_students(order_by="nom")
     print(f"\n📋 Total d'élèves: {len(all_students)}")
@@ -108,19 +108,19 @@ with Session(engine) as session:
 
 with Session(engine) as session:
     service = StudentService(session)
-    
+
     # Recherche textuelle (insensible à la casse)
     results = service.search_students("dupont")
     print(f"\n🔍 Résultats pour 'dupont':")
     for s in results:
         print(f"   - {s.matricule}: {s.nom} {s.prenom}")
-    
+
     # Recherche par prénom
     results = service.search_students("jean")
     print(f"\n🔍 Résultats pour 'jean':")
     for s in results:
         print(f"   - {s.matricule}: {s.nom} {s.prenom}")
-    
+
     # Recherche par matricule
     results = service.search_students("2024")
     print(f"\n🔍 Résultats pour '2024':")
@@ -134,14 +134,11 @@ with Session(engine) as session:
 
 with Session(engine) as session:
     service = StudentService(session)
-    
+
     # Modifier un seul champ
-    student = service.update_student(
-        student_id=1,
-        contact_parent="+229 92 34 56 78"
-    )
+    student = service.update_student(student_id=1, contact_parent="+229 92 34 56 78")
     print(f"✏️ Contact modifié: {student.contact_parent}")
-    
+
     # Modifier plusieurs champs
     student = service.update_student(
         student_id=1,
@@ -151,14 +148,11 @@ with Session(engine) as session:
         est_demuni=True,
     )
     print(f"✏️ Élève modifié: {student.nom} {student.prenom}")
-    
+
     # Mettre à jour par matricule (2 étapes)
     student = service.get_student_by_matricule("2024001")
     if student:
-        service.update_student(
-            student_id=student.id,
-            nom="NOUVEAU"
-        )
+        service.update_student(student_id=student.id, nom="NOUVEAU")
         print(f"✏️ Élève {student.matricule} renommé en: NOUVEAU")
 
 
@@ -168,21 +162,21 @@ with Session(engine) as session:
 
 with Session(engine) as session:
     service = StudentService(session)
-    
+
     # Supprimer par ID
     success = service.delete_student(999)  # Supposons que cet ID existe
     if success:
         print("🗑️ Élève supprimé par ID")
     else:
         print("❌ Élève non trouvé (ID 999)")
-    
+
     # Supprimer par matricule
     success = service.delete_by_matricule("2024999")
     if success:
         print("🗑️ Élève supprimé par matricule")
     else:
         print("❌ Élève non trouvé (matricule 2024999)")
-    
+
     # ⚠️ La suppression efface aussi les inscriptions
     student = service.get_student_by_matricule("2024002")
     if student:
@@ -197,11 +191,11 @@ with Session(engine) as session:
 
 with Session(engine) as session:
     service = StudentService(session)
-    
+
     # Nombre total d'élèves
     total = service.count_students()
     print(f"📊 Total d'élèves: {total}")
-    
+
     # Élèves dans une classe
     classroom_count = service.count_students_by_classroom(classroom_id=1)
     print(f"📊 Élèves dans la classe 1: {classroom_count}")
@@ -211,19 +205,20 @@ with Session(engine) as session:
 # EXEMPLE 8: CAS D'USAGE RÉALISTE
 # ============================================================================
 
+
 def bulk_import_from_list(students_data):
     """
     Importe une liste d'élèves et les inscrit.
-    
+
     Args:
         students_data: List[dict] avec clés matricule, nom, prenom, etc.
     """
     with Session(engine) as session:
         service = StudentService(session)
-        
+
         imported = 0
         failed = 0
-        
+
         for data in students_data:
             try:
                 # Créer l'élève
@@ -242,11 +237,11 @@ def bulk_import_from_list(students_data):
                 )
                 imported += 1
                 print(f"✅ {data['nom']} {data['prenom']}")
-                
+
             except ValueError as e:
                 failed += 1
                 print(f"❌ {data['matricule']}: {e}")
-        
+
         print(f"\n📊 Résumé: {imported} importés, {failed} échoués")
 
 
@@ -280,5 +275,5 @@ if __name__ == "__main__":
             "needy": True,
         },
     ]
-    
+
     # bulk_import_from_list(sample_students)
