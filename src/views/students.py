@@ -36,7 +36,7 @@ def students_view(session: Session):
         )
         return
 
-    class_map = {f"{c.niveau.value}": c.id for c in classes}
+    class_map = {f"{c.niveau}": c.id for c in classes}
     class_names = list(class_map.keys())
 
     # --- TABS CRUD ---

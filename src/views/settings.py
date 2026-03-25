@@ -55,7 +55,7 @@ def settings_view(session: Session):
         if not school_info:
             school_info = SchoolInfo(
                 nom="", departement="", commune="", arrondissement="", village="", 
-                statut=StatutEcole.PUBLIC, niveau=NiveauEcole.EP
+                statut=StatutEcole.PUBLIC.value, niveau=NiveauEcole.EP.value
             )
 
         with st.form("school_info_form"):
@@ -63,8 +63,8 @@ def settings_view(session: Session):
             # ... (Le reste du formulaire) ...
             with col1:
                 nom = st.text_input("Nom de l'école", value=school_info.nom)
-                niveau = st.selectbox("Niveau", [e.value for e in NiveauEcole], index=[e.value for e in NiveauEcole].index(school_info.niveau.value) if school_info.niveau else 0)
-                statut = st.selectbox("Statut", [e.value for e in StatutEcole], index=[e.value for e in StatutEcole].index(school_info.statut.value) if school_info.statut else 0)
+                niveau = st.selectbox("Niveau", [e.value for e in NiveauEcole], index=[e.value for e in NiveauEcole].index(school_info.niveau) if school_info.niveau else 0)
+                statut = st.selectbox("Statut", [e.value for e in StatutEcole], index=[e.value for e in StatutEcole].index(school_info.statut) if school_info.statut else 0)
                 handicap = st.checkbox("École pour handicapés", value=school_info.est_ecole_handicape)
                 contact = st.text_input("Contact Directeur", value=school_info.contact_directeur or "")
             

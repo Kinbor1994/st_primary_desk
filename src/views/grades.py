@@ -227,7 +227,7 @@ def grades_view(session: Session):
     classes = session.exec(
         select(ClassRoom).where(ClassRoom.academic_year_id == active_year.id)
     ).all()
-    class_map = {f"{c.niveau.value}": c.id for c in classes}
+    class_map = {f"{c.niveau}": c.id for c in classes}
     class_names = list(class_map.keys())
 
     if not classes:

@@ -98,8 +98,8 @@ def teachers_view(session: Session):
             data = [{
                 "Matricule": t.matricule,
                 "Nom et Prénom": f"{t.nom} {t.prenom}",
-                "Sexe": t.sexe.value,
-                "Statut": t.statut.value,
+                "Sexe": t.sexe,
+                "Statut": t.statut,
                 "Téléphone": t.telephone,
                 "Grade": t.grade if t.grade else "N/A",
             } for t in teachers]
